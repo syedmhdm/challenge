@@ -1,69 +1,70 @@
-import { Children, useState } from "react";
-import "./App.css";
+import { useState } from "react";
 
-// `https://api.frankfurter.app/latest?amount=100&from=EUR&to=USD`
+function useGeolocation() {
+  const [position, setPosition] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  function getPosition() {
+    if (!navigator.geolocation)
+      return setError("Your browser does not support geolocation");
+
+    setIsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setIsLoading(false);
+      },
+      (error) => {
+        setError(error.message);
+        setIsLoading(false);
+      }
+    );
+  }
+
+  return { position, isLoading, error, getPosition };
+}
 
 export default function App() {
-  const [inputCurrency, setInputCurrency] = useState("");
-  const [output, setOutput] = useState("");
-  const [from, setFrom] = useState("USD");
-  const [to, setTo] = useState("EUR");
+  const [countClicks, setCountClicks] = useState(0);
 
-  async function handleChangeInputCurrency(e) {
-    setInputCurrency(() => {
-      setOutputFunction(e.target.value, from, to);
-      return e.target.value;
-    });
-  }
+  const {
+    position: { lat, lng },
+    isLoading,
+    error,
+    getPosition,
+  } = useGeolocation();
 
-  function handleChangeFrom(e) {
-    setFrom(() => {
-      setOutputFunction(inputCurrency, e.target.value, to);
-      return e.target.value;
-    });
-  }
-  function handleChangeTo(e) {
-    setTo(() => {
-      setOutputFunction(inputCurrency, from, e.target.value);
-      return e.target.value;
-    });
-  }
-
-  async function setOutputFunction(amount, from, to) {
-    if (from === to) {
-      setOutput("Not Applicable");
-      return;
-    }
-
-    const res = await fetch(
-      `https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`
-    );
-
-    const data = await res.json();
-
-    setOutput(data.rates[to]);
+  function handleClick() {
+    setCountClicks((count) => count + 1);
+    getPosition();
   }
 
   return (
     <div>
-      <input
-        type='text'
-        value={inputCurrency}
-        onChange={handleChangeInputCurrency}
-      />
-      <select value={from} onChange={handleChangeFrom}>
-        <option value='USD'>USD</option>
-        <option value='EUR'>EUR</option>
-        <option value='CAD'>CAD</option>
-        <option value='INR'>INR</option>
-      </select>
-      <select value={to} onChange={handleChangeTo}>
-        <option value='USD'>USD</option>
-        <option value='EUR'>EUR</option>
-        <option value='CAD'>CAD</option>
-        <option value='INR'>INR</option>
-      </select>
-      <p>{output}</p>
+      <button onClick={handleClick} disabled={isLoading}>
+        Get my position
+      </button>
+
+      {isLoading && <p>Loading position...</p>}
+      {error && <p>{error}</p>}
+      {!isLoading && !error && lat && lng && (
+        <p>
+          Your GPS position:{" "}
+          <a
+            target='_blank'
+            rel='noreferrer'
+            href={`https://www.openstreetmap.org/#map=16/${lat}/${lng}`}
+          >
+            {lat}, {lng}
+          </a>
+        </p>
+      )}
+
+      <p>You requested position {countClicks} times</p>
     </div>
   );
 }

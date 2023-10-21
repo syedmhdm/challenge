@@ -53,10 +53,9 @@ function reducer(state, action) {
         loan: 0,
       };
     case "closeAccount":
-      return {
-        ...state,
-        isActive: state.balance === 0 && state.loan === 0 ? false : true,
-      };
+      return state.balance === 0 && state.loan === 0
+        ? { ...initialState }
+        : { ...state };
     default:
       return { ...state };
   }
